@@ -1,0 +1,49 @@
+#version: "3.8"
+#
+#services:
+#  posts-db:
+#    image: postgres
+#    container_name: posts-db
+#    environment:
+#      - POSTGRES_DB=postsDB
+#      - POSTGRES_USER=postgres
+#      - POSTGRES_PASSWORD=456123456
+#    networks:
+#      - jobseekers-network
+#    volumes:
+#      - posts-db-data:/var/lib/postgresql/data
+#
+#  user-db:
+#    image: postgres
+#    container_name: user-db
+#    environment:
+#      - POSTGRES_DB=usersDB
+#      - POSTGRES_USER=postgres
+#      - POSTGRES_PASSWORD=456123456
+#    networks:
+#      - jobseekers-network
+#    volumes:
+#      - user-db-data:/var/lib/postgresql/data
+#
+#  post-service:
+#    image: yasiffkhan/jobseekers/post-service
+#    container_name: post-service
+#    networks:
+#      - jobseekers-network
+#    depends_on:
+#      - posts-db
+#
+#  user-service:
+#    image: yasiffkhan/jobseekers/user-service
+#    container_name: user-service
+#    networks:
+#      - jobseekers-network
+#    depends_on:
+#      - user-db
+#
+#networks:
+#  jobseekers-network:
+#
+#volumes:
+#  posts-db-data:
+#  user-db-data:

@@ -1,0 +1,46 @@
+#version: "3.8"
+#
+#services:
+#  connections-db:
+#    image: neo4j
+#    container_name: connections-db
+#    environment:
+#      - NEO4J_AUTH=neo4j/password  # Set your username and password
+#    ports:
+#      - "7474:7474"  # HTTP port
+#      - "7687:7687"  # Bolt port
+#    volumes:
+#      - connections-db-data:/data  # Persist data
+#    networks:
+#      - jobseekers-network
+#
+#  discovery-server:
+#    image: yasiffkhan/jobseekers/discovery-server
+#    container_name: discovery-server
+#    networks:
+#      - jobseekers-network
+#    ports:
+#      - "8761:8761"
+#
+#  connections-service:
+#    image: yasiffkhan/jobseekers/connections-service
+#    container_name: connections-service
+#    networks:
+#      - jobseekers-network
+#    depends_on:
+#      - discovery-server
+#      - connections-db
+#
+#  api-gateway:
+#    image: yasiffkhan/jobseekers/api-gateway
+#    container_name: api-gateway
+#    networks:
+#      - jobseekers-network
+#    depends_on:
+#      - discovery-server
+#
+#networks:
+#  jobseekers-network:
+#
+#volumes:
+#  connections-db-data:

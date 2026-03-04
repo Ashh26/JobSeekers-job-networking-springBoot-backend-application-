@@ -1,0 +1,173 @@
+services:
+  kafka:
+    image: apache/kafka:latest
+    container_name: kafka
+    user: root
+    volumes:
+      - kafka_data:/tmp/kafka-logs
+    networks:
+      - jobseekers-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    environment:
+      # KRaft mode - combined (broker + controller)
+      KAFKA_NODE_ID: 0
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 0@kafka:9093
+
+      # Listeners configuration
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      # Replication settings
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+      # Misc
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_DIRS: /tmp/kafka-logs
+      KAFKA_LOG_RETENTION_HOURS: 168
+
+      # Cluster ID
+      CLUSTER_ID: MkU3OEVCNTcwNTJENDM2Qk
+
+  kafbat-ui:
+    container_name: kafbat-ui
+    image: ghcr.io/kafbat/kafka-ui:latest
+    ports:
+      - 8090:8080
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - jobseekers-network
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: kafka:9092
+
+  notification-db:
+    image: postgres:16
+    container_name: notification-db
+    environment:
+      - POSTGRES_DB=notificationDB
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=456123456
+    networks:
+      - jobseekers-network
+    volumes:
+      - notification-db-data:/var/lib/postgresql
+
+  posts-db:
+    image: postgres:16
+    container_name: posts-db
+    environment:
+      - POSTGRES_DB=postsDB
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=456123456
+    networks:
+      - jobseekers-network
+    volumes:
+      - posts-db-data:/var/lib/postgresql
+
+  user-db:
+    image: postgres:16
+    container_name: user-db
+    environment:
+      - POSTGRES_DB=usersDB
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=456123456
+    networks:
+      - jobseekers-network
+    volumes:
+      - user-db-data:/var/lib/postgresql
+
+  connections-db:
+    image: neo4j:5.15
+    container_name: connections-db
+    environment:
+      - NEO4J_AUTH=neo4j/password
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - connections-db-data:/data
+    networks:
+      - jobseekers-network
+
+  discovery-server:
+    image: yasiffkhan/jobseekers:discovery-server
+    container_name: discovery-server
+    networks:
+      - jobseekers-network
+    ports:
+      - "8761:8761"
+    depends_on:
+      - kafka
+
+  post-service:
+    image: yasiffkhan/jobseekers:post-service
+    container_name: post-service
+    networks:
+      - jobseekers-network
+    depends_on:
+      - discovery-server
+      - posts-db
+      - kafka
+
+  user-service:
+    image: yasiffkhan/jobseekers:user-service
+    container_name: user-service
+    networks:
+      - jobseekers-network
+    depends_on:
+      - discovery-server
+      - user-db
+      - kafka
+
+  notification-service:
+    image: yasiffkhan/jobseekers:notification-service
+    container_name: notification-service
+    networks:
+      - jobseekers-network
+    depends_on:
+      - discovery-server
+      - notification-db
+      - kafka
+
+  connections-service:
+    image: yasiffkhan/jobseekers:connections-service
+    container_name: connections-service
+    networks:
+      - jobseekers-network
+    depends_on:
+      - discovery-server
+      - connections-db
+      - kafka
+
+  api-gateway:
+    image: yasiffkhan/jobseekers:api-gateway
+    container_name: api-gateway
+    ports:
+      - "8081:8080"
+    networks:
+      - jobseekers-network
+    depends_on:
+      - discovery-server
+
+networks:
+  jobseekers-network:
+
+volumes:
+  kafka_data:
+  notification-db-data:
+  posts-db-data:
+  user-db-data:
+  connections-db-data:
